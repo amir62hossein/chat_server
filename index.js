@@ -16,14 +16,48 @@ io.on("connection", (socket) => {
     socketId,
   });
 
-  socket.on("send-message", (message) => {
-    const filteredUser = users.filter((elem) => elem.userId === message.to);
-    const receiverSocketId = filteredUser[0].socketId;
-    socket.broadcast
-      .to(receiverSocketId)
-      .emit("onMessage", { message: message.message, from: userId });
+  // send message to single Person or in Room
+  /*
+    message json
+    {
+      "message" : "some message",
+      "to" : "socketId"
+    }
+
+  */
+  socket.on("send-message", (event) => {
+    if (!event.roomId) {
+      // send to room
+      io.to(event.roomId).emit("onMessage", {
+        message: event.message,
+        from: userId,
+        room: event.roomId,
+      });
+    } else {
+      // send message to person
+      const filteredUser = users.filter((elem) => elem.userId === event.to);
+      if (filteredUser.length > 0) {
+        const receiverSocketId = filteredUser[0].socketId;
+        socket.broadcast
+          .to(receiverSocketId)
+          .emit("onMessage", { message: event.message, from: userId });
+      }
+      // define emit in client
+    }
   });
 
+  // Join person to new Room
+  socket.on("join-room", (event) => {
+    socket.join(`ROOM ${event.roomId}`);
+    console.log(`user ${userId} join room `);
+  });
+  // Leave person from Room
+  socket.on("leave-room", (event) => {
+    socket.leave(`ROOM ${event.roomId}`);
+    console.log(`user ${userId} left the room `);
+  });
+
+  // disconnect user from server
   socket.on("disconnect", (event) => {
     console.log("userId: " + userId + "   disconnect");
     const index = users.indexOf((elem) => elem.userId === userId);
