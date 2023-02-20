@@ -5,7 +5,9 @@ const app = express();
 const port = process.env.PORT || 8080;
 const server = http.createServer(app);
 const io = require("socket.io")(server);
+const db = require("./db/index");
 const users = [];
+const userApi = require("./api/user.routes");
 
 io.on("connection", (socket) => {
   const userId = socket.handshake.query.userId;
@@ -64,6 +66,8 @@ io.on("connection", (socket) => {
     users.slice(index, 1);
   });
 });
+app.use(express.json())
+app.use(userApi);
 
 server.listen(port, () => {
   console.log("server listening on port 8080");
